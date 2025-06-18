@@ -4,8 +4,6 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -22,12 +20,12 @@ export const Header = () => {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href="#">Home</BreadcrumbLink>
+              <BreadcrumbLink href="/">Home</BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator className="hidden md:block" />
+            {/* <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem>
               <BreadcrumbPage>Category</BreadcrumbPage>
-            </BreadcrumbItem>
+            </BreadcrumbItem> */}
           </BreadcrumbList>
         </Breadcrumb>
       </div>

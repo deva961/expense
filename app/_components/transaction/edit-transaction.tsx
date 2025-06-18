@@ -1,10 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { getCategories } from "@/actions/category";
 import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,11 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { transactionSchema } from "@/schema";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
-import { getCategories } from "@/actions/category";
-import { createTransaction } from "@/actions/transaction";
 import {
   Sheet,
   SheetClose,
@@ -38,113 +34,109 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
+import { transactionSchema } from "@/schema";
+import { Category, Transaction } from "@/types";
+import { useQuery } from "@tanstack/react-query";
 
-export const CreateTransactionForm = () => {
-  const [isOpen, setIsOpen] = useState<boolean>(false);
+type Props = {
+  triggerName: string;
+  variant?:
+    | "default"
+    | "secondary"
+    | "destructive"
+    | "outline"
+    | "link"
+    | "ghost"
+    | "ultraGhost"
+    | null;
+  values: Transaction;
+};
 
-  const form = useForm<z.infer<typeof transactionSchema>>({
-    resolver: zodResolver(transactionSchema),
-    defaultValues: {
-      name: "",
-      amount: "",
-      notes: "",
-      transactionType: "INCOME",
-      transactionDate: "",
-    },
-  });
+export const EditTransactionForm = ({
+  values,
+  variant = "ultraGhost",
+  triggerName,
+}: Props) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
 
-  const queryClient = useQueryClient();
+  const formattedDate = values.transactionDate
+    ? new Date(values.transactionDate).toISOString().split("T")[0]
+    : new Date().toISOString().split("T")[0];
 
-  // Always call useQuery and useMutation in the same order
-  const {
-    data: categories,
-    isPending,
-    isError,
-    error,
-  } = useQuery({
+  const { data, isPending, isError, error } = useQuery({
     queryKey: ["categories"],
     queryFn: getCategories,
   });
 
-  const mutation = useMutation({
-    mutationFn: createTransaction,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      toast.success("Transaction created successfully!");
-      form.reset();
-      setIsOpen(false);
-    },
-    onError: (error) => {
-      const message =
-        error instanceof Error ? error.message : "Something went wrong!";
-      toast.error(message);
-      console.log(error);
+  useEffect(() => {
+    if (data && data.categories) {
+      setCategories(data.categories);
+    }
+  }, [data]);
+
+  const form = useForm<z.infer<typeof transactionSchema>>({
+    resolver: zodResolver(transactionSchema),
+    defaultValues: {
+      amount: values.amount ?? "",
+      notes: values.notes ?? "",
+      transactionType: values.transactionType ?? "INCOME",
+      transactionDate: formattedDate,
+      categoryId: values.categoryId ?? "",
     },
   });
 
-  const onSubmit = (values: z.infer<typeof transactionSchema>) => {
-    mutation.mutate(values);
+  const {
+    handleSubmit,
+    control,
+    formState: { isSubmitting },
+  } = form;
+
+  const onSubmit = (data: z.infer<typeof transactionSchema>) => {
+    console.log("Submitted data:", data);
+    setIsOpen(false);
   };
 
-  const pending = mutation.isPending;
-
-  // Handle loading and error states after hooks are called
   if (isPending) {
-    return <span>Loading...</span>;
+    return (
+      <div className="min-h-lvh flex items-center justify-center">
+        Loading...
+      </div>
+    );
   }
 
   if (isError) {
-    return (
-      <span>
-        Error: {error instanceof Error ? error.message : "An error occurred"}
-      </span>
-    );
+    return <div>Something went wrong! {error?.message}</div>;
   }
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button>+ Create</Button>
+        <Button className="font-normal" variant={variant}>
+          {triggerName}
+        </Button>
       </SheetTrigger>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Create Transaction</SheetTitle>
+          <SheetTitle>Edit Transaction</SheetTitle>
         </SheetHeader>
         <div className="mx-5">
           <Form {...form}>
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
               <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled={pending} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
+                control={control}
                 name="categoryId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category </FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <FormLabel>Category</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a category type" />
+                          <SelectValue placeholder="Select a category" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {categories?.categories?.map((item) => (
+                        {categories.map((item) => (
                           <SelectItem
                             key={item.id}
                             value={item.id}
@@ -161,15 +153,12 @@ export const CreateTransactionForm = () => {
               />
 
               <FormField
-                control={form.control}
+                control={control}
                 name="transactionType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Transaction Type </FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <FormLabel>Transaction Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select a transaction type" />
@@ -186,17 +175,13 @@ export const CreateTransactionForm = () => {
               />
 
               <FormField
-                control={form.control}
+                control={control}
                 name="transactionDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Transaction Date </FormLabel>
+                    <FormLabel>Date</FormLabel>
                     <FormControl>
-                      <Input
-                        type={"datetime-local"}
-                        {...field}
-                        disabled={pending}
-                      />
+                      <Input type="date" {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -204,7 +189,7 @@ export const CreateTransactionForm = () => {
               />
 
               <FormField
-                control={form.control}
+                control={control}
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
@@ -212,8 +197,8 @@ export const CreateTransactionForm = () => {
                     <FormControl>
                       <Input
                         placeholder="e.g. 1200"
-                        disabled={pending}
                         {...field}
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                     <FormMessage />
@@ -222,13 +207,13 @@ export const CreateTransactionForm = () => {
               />
 
               <FormField
-                control={form.control}
+                control={control}
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Notes </FormLabel>
+                    <FormLabel>Notes</FormLabel>
                     <FormControl>
-                      <Textarea {...field} disabled={pending} />
+                      <Textarea {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -240,13 +225,15 @@ export const CreateTransactionForm = () => {
         <SheetFooter>
           <Button
             type="submit"
-            onClick={() => form.handleSubmit(onSubmit)()}
-            disabled={pending}
+            onClick={() => handleSubmit(onSubmit)()}
+            disabled={isSubmitting}
           >
-            {pending ? <Spinner /> : "Submit"}
+            {isSubmitting ? <Spinner /> : "Save Changes"}
           </Button>
           <SheetClose asChild>
-            <Button variant={"outline"}>Done</Button>
+            <Button type="button" variant="outline">
+              Done
+            </Button>
           </SheetClose>
         </SheetFooter>
       </SheetContent>

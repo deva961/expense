@@ -24,7 +24,7 @@ export default function RootLayout({
       <body className={`${font.className} antialiased`}>
         <TanstackProvider>
           {children}
-          <Toaster position="bottom-left" />
+          <Toaster position="bottom-right" />
         </TanstackProvider>
       </body>
     </html>

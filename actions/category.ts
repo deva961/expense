@@ -1,143 +1,135 @@
 "use server";
 
 import { z } from "zod";
+
 import { prisma } from "@/lib/db";
 import { categorySchema } from "@/schema";
+import { getSession } from "@/lib/get-session";
 
 // Fetch zero or more Categories
 export const getCategories = async () => {
+  const session = await getSession();
+  if (!session) {
+    return { message: "Unauthorized!", status: 401 };
+  }
+
   try {
     const categories = await prisma.category.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
       take: 100,
     });
-    return {
-      categories,
-      status: 200,
-      message: "success",
-    };
+    return { categories, status: 200, message: "success" };
   } catch (error) {
-    return {
-      message: "Something went wrong!",
-      status: 500,
-    };
+    console.error(error);
+    return { message: "Something went wrong!", status: 500 };
   }
 };
 
-// Fetch categories by id
+// Fetch category by ID
 export const getCategoryById = async (id: string) => {
+  const session = await getSession();
+  if (!session) {
+    return { message: "Unauthorized!", status: 401 };
+  }
+
   try {
-    const categories = await prisma.category.findUnique({
-      where: {
-        id,
-      },
+    const category = await prisma.category.findUnique({
+      where: { id, userId: session.user.id },
     });
-    return {
-      categories,
-      status: 200,
-      message: "success",
-    };
-  } catch (error: any) {
-    throw new Error(error?.message || "Something went wrong!");
+    if (!category) {
+      return { message: "Category not found", status: 404 };
+    }
+    return { category, status: 200, message: "success" };
+  } catch (error) {
+    console.error(error);
+    return { message: "Something went wrong!", status: 500 };
   }
 };
 
-//create a category
+// Create a category
 export const createCategory = async (
   values: z.infer<typeof categorySchema>
 ) => {
-  const validatedFields = categorySchema.safeParse(values);
+  const session = await getSession();
+  if (!session) {
+    return { message: "Unauthorized!", status: 401 };
+  }
 
+  const validatedFields = categorySchema.safeParse(values);
   if (!validatedFields.success) {
-    throw new Error("Please fill all the required fields!");
+    return { message: "Invalid input data", status: 400 };
   }
 
   const { name, notes, icon } = validatedFields.data;
   try {
-    const existingCategory = await prisma.category.findUnique({
-      where: {
-        name,
-      },
-    });
-
-    if (existingCategory) {
-      throw new Error("Category already exists!");
-    }
-
     const category = await prisma.category.create({
-      data: {
-        name,
-        notes,
-        icon,
-      },
+      data: { name, notes, icon, userId: session.user.id },
     });
-    return {
-      category,
-      status: 200,
-      message: "success",
-    };
-  } catch (error: any) {
-    console.log(error);
-    throw new Error(error?.message || "Something went wrong!");
+    return { category, status: 201, message: "Category created successfully" };
+  } catch (error) {
+    console.error(error);
+    return { message: "Something went wrong!", status: 500 };
   }
 };
 
-//update category
+// Update a category
 export const updateCategory = async (
   id: string,
   values: z.infer<typeof categorySchema>
 ) => {
+  const session = await getSession();
+  if (!session) {
+    return { message: "Unauthorized!", status: 401 };
+  }
+
   const { name, notes, icon } = values;
   try {
     const existingCategory = await prisma.category.findUnique({
-      where: {
-        id,
-      },
+      where: { id, userId: session.user.id },
     });
-
     if (!existingCategory) {
-      throw new Error("Category not found!");
+      return { message: "Category not found!", status: 404 };
     }
 
-    const category = await prisma.category.update({
-      where: {
-        id,
-      },
-      data: {
-        name,
-        notes,
-        icon,
-      },
+    const updatedCategory = await prisma.category.update({
+      where: { id, userId: session.user.id },
+      data: { name, notes, icon },
     });
     return {
-      category,
+      updatedCategory,
       status: 200,
-      message: "success",
+      message: "Category updated successfully",
     };
   } catch (error) {
-    throw new Error("Something went wrong!");
+    console.error(error);
+    return { message: "Something went wrong!", status: 500 };
   }
 };
 
-//delete category
+// Delete a category
 export const deleteCategory = async (id: string) => {
+  const session = await getSession();
+  if (!session) {
+    return { message: "Unauthorized!", status: 401 };
+  }
+
   try {
-    await prisma.$transaction([
-      prisma.transaction.deleteMany({ where: { categoryId: id } }),
+    // Ensure to handle delete of related transactions properly
+    const result = await prisma.$transaction([
+      prisma.transaction.deleteMany({
+        where: { categoryId: id, userId: session.user.id },
+      }),
       prisma.category.delete({ where: { id } }),
     ]);
 
-    return {
-      status: 200,
-      message: "success",
-    };
+    if (!result) {
+      return { message: "Category not found", status: 404 };
+    }
+
+    return { message: "Category deleted successfully", status: 200 };
   } catch (error) {
     console.error("Delete category failed:", error);
-    return {
-      status: 500,
-      message: "Something went wrong!",
-    };
+    return { message: "Something went wrong!", status: 500 };
   }
 };

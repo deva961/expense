@@ -1,7 +1,7 @@
 "use client";
 
 import { getCategories } from "@/actions/category";
-import { CreateCategoryForm } from "@/app/_components/create-category";
+import { CreateCategoryForm } from "@/app/_components/category/create-category";
 import { useQuery } from "@tanstack/react-query";
 
 import { DataTable } from "@/components/data-table";

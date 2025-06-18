@@ -1,7 +1,7 @@
 "use client";
 
 import { deleteCategory } from "@/actions/category";
-import { EditCategoryForm } from "@/app/_components/edit-category";
+import { EditCategoryForm } from "@/app/_components/category/edit-category";
 import { AlertButton } from "@/components/confirm-popup";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -58,10 +58,10 @@ export const Columns: ColumnDef<Category>[] = [
     accessorKey: "notes",
     header: "Notes",
   },
-  {
-    accessorKey: "icon",
-    header: "Icon",
-  },
+  // {
+  //   accessorKey: "icon",
+  //   header: "Icon",
+  // },
   {
     id: "actions",
     enableHiding: false,
@@ -101,10 +101,12 @@ export const ActionButtons = ({ row }: { row: Row<Category> }) => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem>View</DropdownMenuItem>
           <DropdownMenuItem>Edit</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setIsOpen(true)}>
+          <DropdownMenuItem
+            className="hover:!bg-destructive/10 hover:!text-destructive"
+            onClick={() => setIsOpen(true)}
+          >
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>

@@ -25,7 +25,7 @@ export function NavProjects({
         {links.map((item) => (
           <SidebarMenuItem key={item.name}>
             <SidebarMenuButton asChild>
-              <Link href={item.url}>
+              <Link href={`/admin/${item.url}`}>
                 <item.icon />
                 <span>{item.name}</span>
               </Link>

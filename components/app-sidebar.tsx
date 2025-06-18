@@ -2,7 +2,6 @@
 
 import {
   AppWindow,
-  Command,
   LayoutDashboard,
   LifeBuoy,
   Receipt,
@@ -12,7 +11,6 @@ import * as React from "react";
 
 import { NavProjects } from "@/components/nav-projects";
 import { NavSecondary } from "@/components/nav-secondary";
-import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -22,14 +20,18 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import Link from "next/link";
+import Logo from "./logo";
+import { NavUser } from "./nav-user";
+
+type AppSidebarProps = {
+  user: {
+    name: string;
+    email: string;
+    image?: string | null;
+  };
+};
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   navSecondary: [
     {
       title: "Support",
@@ -55,28 +57,23 @@ const data = {
     },
     {
       name: "Transactions",
-      url: "/transactions",
+      url: "transactions",
       icon: Receipt,
     },
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+  user,
+  ...props
+}: AppSidebarProps & React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href="/">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Command className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Acme Inc</span>
-                  <span className="truncate text-xs">Enterprise</span>
-                </div>
-              </Link>
+              <Logo />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -85,9 +82,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavProjects links={data.links} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter>
-        <NavUser user={data.user} />
-      </SidebarFooter>
+      <SidebarFooter>{user && <NavUser user={user} />}</SidebarFooter>
     </Sidebar>
   );
 }

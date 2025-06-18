@@ -7,9 +7,11 @@ export type Category = {
 
 export type Transaction = {
   id: string;
+  name: string;
   amount: string;
   notes?: string | null;
   transactionDate: Date;
   transactionType: "INCOME" | "EXPENSE";
   category: Category;
+  categoryId: string;
 };

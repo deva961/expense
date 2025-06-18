@@ -8,7 +8,13 @@ interface TanstackProviderProps {
 }
 
 // Create a client
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // default: true
+    },
+  },
+});
 
 export const TanstackProvider = ({ children }: TanstackProviderProps) => {
   return (
